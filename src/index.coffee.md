@@ -14,13 +14,13 @@ Please look at the [README], the [project website][site] the [samples] and the
 
 ## Usage
 
-Callback approach, for ease of use:   
+Callback approach, for ease of use:
 
-`parse(data, [options], callback)`     
+`parse(data, [options], callback)`
 
-[Node.js Stream API][stream], for maximum of power:   
+[Node.js Stream API][stream], for maximum of power:
 
-`parse([options], [callback])`   
+`parse([options], [callback])`
 
     module.exports = ->
       if arguments.length is 3
@@ -77,6 +77,7 @@ Options are documented [here](http://csv.adaltas.com/parse/).
       @options.delimiter ?= ','
       @options.quote ?= '"'
       @options.escape ?= '"'
+      @options.empty_value ?= undefined
       @options.columns ?= null
       @options.comment ?= ''
       @options.objname ?= false
@@ -116,7 +117,7 @@ The Parser implement a [`stream.Transform` class][transform].
 ### Events
 
 The library extends Node [EventEmitter][event] class and emit all
-the events of the Writable and Readable [Stream API][stream]. 
+the events of the Writable and Readable [Stream API][stream].
 
     util.inherits Parser, stream.Transform
 
@@ -127,11 +128,11 @@ class: `require('csv-parse').Parser`.
 
 ### `_transform(chunk, encoding, callback)`
 
-*   `chunk` Buffer | String   
+*   `chunk` Buffer | String
     The chunk to be transformed. Will always be a buffer unless the decodeStrings option was set to false.
-*   `encoding` String   
+*   `encoding` String
     If the chunk is a string, then this is the encoding type. (Ignore if decodeStrings chunk is a buffer.)
-*   `callback` Function   
+*   `callback` Function
     Call this function (optionally with an error argument) when you are done processing the supplied chunk.
 
 Implementation of the [`stream.Transform` API][transform]
@@ -249,7 +250,7 @@ Implementation of the [`stream.Transform` API][transform]
         # Note, shouldn't we have sth like chars.substr(i, @options.escape.length)
         if not @commenting and char is @options.escape
           # Make sure the escape is really here for escaping:
-          # If escape is same as quote, and escape is first char of a field 
+          # If escape is same as quote, and escape is first char of a field
           # and it's not quoted, then it is a quote
           # Next char should be an escape or a quote
           escapeIsQuote = @options.escape is @options.quote
@@ -265,8 +266,8 @@ Implementation of the [`stream.Transform` API][transform]
         if not @commenting and char is @options.quote
           if @quoting
             # Make sure a closing quote is followed by a delimiter
-            # If we have a next character and 
-            # it isnt a rowDelimiter and 
+            # If we have a next character and
+            # it isnt a rowDelimiter and
             # it isnt an column delimiter and
             # it isnt the begining of a comment
             # Otherwise, if this is not "relax" mode, throw an error
@@ -311,6 +312,9 @@ Implementation of the [`stream.Transform` API][transform]
               i += @options.rowDelimiter.length
               @nextChar = chars.charAt i
               continue
+          # Empty field
+          else if @field is ''
+            @field = @empty_value
           if rtrim
             @field = @field.trimRight() unless @closingQuote
           @line.push auto_parse @field
